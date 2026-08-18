@@ -1,0 +1,241 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  INTERNAL
+  CLIENT
+}
+
+enum ProjectStatus {
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  OVERDUE
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum DocumentStatus {
+  PENDING
+  RECEIVED
+}
+
+// A client organization. Individual client logins (Users with role CLIENT)
+// belong to one Company; a Company can have many Projects.
+model Company {
+  id        String    @id @default(cuid())
+  name      String
+  createdAt DateTime  @default(now())
+  users     User[]
+  projects  Project[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  companyId    String?
+  company      Company? @relation(fields: [companyId], references: [id])
+  createdAt    DateTime @default(now())
+
+  // Set when an admin removes this team member. They can no longer log in
+  // or see any project, but their name stays attached to everything they
+  // already authored (messages, documents, tasks, call logs) so history
+  // still reads correctly.
+  deactivatedAt DateTime?
+
+  pocForProjects   Project[]         @relation("ProjectPOC")
+  taskAssignments  Task[]            @relation("TaskAssignee")
+  documentsAdded   Document[]
+  messages         Message[]
+  updatesPosted    ProjectUpdate[]
+  notifications    Notification[]
+  projectMemberships ProjectMember[]
+  callLogs         CallLog[]
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  code        String        @unique
+  name        String
+  description String?
+  status      ProjectStatus @default(IN_PROGRESS)
+  progress    Int           @default(0)
+  startDate   DateTime?
+  dueDate     DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  // The one team member allowed to message the client on this project (in
+  // Communication). Everyone on the team can still read the full thread, so
+  // whoever takes over as POC later has full context. Reassignable by Admin.
+  pocId String?
+  poc   User?   @relation("ProjectPOC", fields: [pocId], references: [id])
+
+  // Single shared link (e.g. Zoho folder) where the client uploads every
+  // required document - set once by staff, not per document.
+  documentUploadLink String?
+
+  // Why the project is currently on hold - required whenever status is set
+  // to ON_HOLD, cleared once it moves to any other status. Visible to the client.
+  holdReason String?
+
+  tasks     Task[]
+  documents Document[]
+  messages  Message[]
+  updates   ProjectUpdate[]
+  notifications Notification[]
+  members   ProjectMember[]
+  callLogs  CallLog[]
+}
+
+// An internal team member (staff) assigned to work on a project. A project
+// can have many members; a staff member can be on many projects.
+model ProjectMember {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([projectId, userId])
+}
+
+model Task {
+  id        String     @id @default(cuid())
+  name      String
+  status    TaskStatus @default(TODO)
+  startDate DateTime?
+  dueDate   DateTime?
+  // Why this task is late. Shown to the client when they click a delayed
+  // task on the Gantt chart; staff sets/updates it from the same place.
+  delayReason String?
+  createdAt DateTime   @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assigneeId String?
+  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  subtasks Subtask[]
+}
+
+// Once a task has any subtasks, its status is derived from them (all Done
+// -> Done, all To Do -> To Do, any mix / any In Progress -> In Progress)
+// instead of being toggled by hand.
+model Subtask {
+  id        String     @id @default(cuid())
+  name      String
+  status    TaskStatus @default(TODO)
+  createdAt DateTime   @default(now())
+
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+// Weekly status update, replaces the manual status email.
+model ProjectUpdate {
+  id         String   @id @default(cuid())
+  weekOf     DateTime @default(now())
+  completed  String? // newline-separated bullet points
+  inProgress String?
+  nextSteps  String?
+  risks      String?
+  holdReason String? // required justification when this update sets status to ON_HOLD
+  createdAt  DateTime @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+}
+
+// A required document staff expects from the client. There is no file
+// storage here - the client uploads to the project's shared upload link,
+// and this just tracks whether each named item has been received.
+model Document {
+  id        String         @id @default(cuid())
+  name      String
+  status    DocumentStatus @default(PENDING)
+  createdAt DateTime       @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  addedById String
+  addedBy   User   @relation(fields: [addedById], references: [id])
+}
+
+// Communication thread per project (in-app messages; can mirror emails).
+model Message {
+  id        String   @id @default(cuid())
+  body      String
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [id])
+
+  attachments MessageAttachment[]
+}
+
+model MessageAttachment {
+  id        String  @id @default(cuid())
+  fileName  String
+  filePath  String
+  messageId String
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+// A note logged after a phone call with the client. Visible to the client
+// (like meeting minutes), but only staff can log one.
+model CallLog {
+  id           String   @id @default(cuid())
+  calledAt     DateTime
+  participants String
+  summary      String
+  nextSteps    String?
+  createdAt    DateTime @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  loggedById String
+  loggedBy   User   @relation(fields: [loggedById], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+}

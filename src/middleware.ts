@@ -1,0 +1,24 @@
+import { auth } from "@/lib/auth";
+import { NextResponse } from "next/server";
+
+export default auth((req) => {
+  const { pathname } = req.nextUrl;
+  const isLoggedIn = !!req.auth;
+  const isPublic = pathname === "/login" || pathname.startsWith("/api/auth");
+
+  if (!isLoggedIn && !isPublic) {
+    const loginUrl = new URL("/login", req.nextUrl.origin);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  const role = req.auth?.user?.role;
+  if (isLoggedIn && pathname.startsWith("/admin") && role !== "ADMIN") {
+    return NextResponse.redirect(new URL("/dashboard", req.nextUrl.origin));
+  }
+
+  return NextResponse.next();
+});
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|uploads).*)"],
+};
