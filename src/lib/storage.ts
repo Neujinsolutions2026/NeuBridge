@@ -1,14 +1,17 @@
 import { mkdir, writeFile, readFile } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
-import { put } from "@vercel/blob";
+import { put, get } from "@vercel/blob";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 // Local disk only survives on a server with a persistent filesystem (dev,
 // or a VPS) - on Vercel's serverless functions it's wiped between requests.
 // Vercel Blob is used automatically once a Blob store is connected (which
 // injects this token) so this same code works in both environments without
-// a separate prod/dev code path to keep in sync.
+// a separate prod/dev code path to keep in sync. The store is private, so
+// reads go through the SDK's authenticated get() rather than a bare URL -
+// this matches the download route being the one authenticated place these
+// files are ever read from.
 const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN;
 
 export async function saveUploadedFile(file: File): Promise<{ filePath: string; fileName: string }> {
@@ -17,8 +20,8 @@ export async function saveUploadedFile(file: File): Promise<{ filePath: string; 
   const buffer = Buffer.from(await file.arrayBuffer());
 
   if (useBlob) {
-    const blob = await put(storedName, buffer, { access: "public", addRandomSuffix: false });
-    return { filePath: blob.url, fileName: file.name };
+    await put(storedName, buffer, { access: "private", addRandomSuffix: false });
+    return { filePath: storedName, fileName: file.name };
   }
 
   await mkdir(UPLOAD_DIR, { recursive: true });
@@ -26,15 +29,11 @@ export async function saveUploadedFile(file: File): Promise<{ filePath: string; 
   return { filePath: storedName, fileName: file.name };
 }
 
-// filePath is either a Blob URL (production) or a local filename (dev) -
-// the download route stays the single, authenticated place either kind of
-// file is ever read from, so callers don't need to know which storage is
-// backing it.
 export async function readStoredFile(filePath: string): Promise<Buffer> {
-  if (/^https?:\/\//.test(filePath)) {
-    const res = await fetch(filePath);
-    if (!res.ok) throw new Error(`Failed to fetch stored file: ${res.status}`);
-    return Buffer.from(await res.arrayBuffer());
+  if (useBlob) {
+    const result = await get(filePath, { access: "private" });
+    if (!result) throw new Error(`Stored file not found: ${filePath}`);
+    return Buffer.from(await new Response(result.stream).arrayBuffer());
   }
 
   const safeName = path.basename(filePath);
