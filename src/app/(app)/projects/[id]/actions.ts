@@ -100,18 +100,23 @@ export async function createTaskAction(projectId: string, formData: FormData) {
   if (!isStaff(session)) throw new Error("Only staff can create tasks");
 
   const name = (formData.get("name") as string | null)?.trim();
+  if (!name) return;
+
+  const unscheduled = formData.get("unscheduled") === "on";
   const startDateRaw = formData.get("startDate") as string | null;
   const dueDateRaw = formData.get("dueDate") as string | null;
-  // Start and due dates are mandatory - a task can't be plotted on the
-  // Gantt chart or judged for delay without them.
-  if (!name || !startDateRaw || !dueDateRaw) return;
+  // Scheduled tasks need both dates to be plotted on the Gantt chart and
+  // judged for delay. Unscheduled tasks are created without them on
+  // purpose (e.g. backlog work with no timeline yet) and simply show up
+  // in the Gantt chart's "unscheduled" list instead of on the timeline.
+  if (!unscheduled && (!startDateRaw || !dueDateRaw)) return;
 
   await prisma.task.create({
     data: {
       projectId,
       name,
-      startDate: new Date(startDateRaw),
-      dueDate: new Date(dueDateRaw),
+      startDate: unscheduled ? null : new Date(startDateRaw as string),
+      dueDate: unscheduled ? null : new Date(dueDateRaw as string),
     },
   });
 

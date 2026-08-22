@@ -64,6 +64,12 @@ export function GanttChart({
         <p className="mt-2 text-sm text-gray-400">
           Add a due date to at least one task to see it plotted on a timeline here.
         </p>
+        {unscheduled.length > 0 && (
+          <p className="mt-3 text-[11px] text-gray-400">
+            {unscheduled.length} unscheduled task{unscheduled.length === 1 ? "" : "s"}:{" "}
+            {unscheduled.map((t) => t.name).join(", ")}
+          </p>
+        )}
       </div>
     );
   }
@@ -189,7 +195,7 @@ export function GanttChart({
 
       {unscheduled.length > 0 && (
         <p className="mt-3 text-[11px] text-gray-400">
-          {unscheduled.length} task{unscheduled.length === 1 ? "" : "s"} without a due date not shown here:{" "}
+          {unscheduled.length} unscheduled task{unscheduled.length === 1 ? "" : "s"} (not shown on the timeline):{" "}
           {unscheduled.map((t) => t.name).join(", ")}
         </p>
       )}

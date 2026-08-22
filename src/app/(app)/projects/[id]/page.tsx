@@ -8,13 +8,13 @@ import { PostUpdateForm } from "./PostUpdateForm";
 import { CommunicationThread } from "./CommunicationThread";
 import { GanttChart } from "./GanttChart";
 import { TaskSubtasks } from "./TaskSubtasks";
+import { AddTaskForm } from "./AddTaskForm";
 import { ORG_NAME } from "@/lib/constants";
 import {
   postMessageAction,
   setDocumentUploadLinkAction,
   addRequiredDocumentAction,
   toggleDocumentStatusAction,
-  createTaskAction,
   toggleTaskAction,
   deleteTaskAction,
   logCallAction,
@@ -374,25 +374,7 @@ export default async function ProjectDetailPage({
 
         {activeTab === "tasks" && (
           <div className="space-y-4">
-            {staff && (
-              <form action={createTaskAction.bind(null, project.id)} className="flex flex-wrap items-end gap-2 rounded-lg border border-gray-200 bg-white p-4">
-                <div className="flex-1">
-                  <label className="block text-xs text-gray-500">
-                    Task name
-                    <input name="name" placeholder="New task name" required className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
-                  </label>
-                </div>
-                <label className="text-xs text-gray-500">
-                  Start <span className="text-red-600">*</span>
-                  <input type="date" name="startDate" required className="mt-1 block rounded-md border border-gray-300 px-2 py-2 text-sm" />
-                </label>
-                <label className="text-xs text-gray-500">
-                  Due <span className="text-red-600">*</span>
-                  <input type="date" name="dueDate" required className="mt-1 block rounded-md border border-gray-300 px-2 py-2 text-sm" />
-                </label>
-                <button className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">Add Task</button>
-              </form>
-            )}
+            {staff && <AddTaskForm projectId={project.id} />}
             {staff && (
               <div className="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
                 {project.tasks.map((t) => (
@@ -401,6 +383,11 @@ export default async function ProjectDetailPage({
                       <div>
                         <p className={`text-sm ${t.status === "DONE" ? "text-gray-400 line-through" : "text-gray-900"}`}>
                           {t.name}
+                          {!t.startDate && !t.dueDate && (
+                            <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                              Unscheduled
+                            </span>
+                          )}
                           {t.status !== "DONE" && t.dueDate && t.dueDate < new Date() && (
                             <span className="ml-2 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
                               Delayed
