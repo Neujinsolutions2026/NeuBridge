@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { ChangePasswordForm } from "./ChangePasswordForm";
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -19,6 +20,8 @@ export default async function ProfilePage() {
         <Row label="Role" value={session.user.role} />
         {company && <Row label="Company" value={company.name} />}
       </div>
+
+      <ChangePasswordForm />
     </div>
   );
 }
