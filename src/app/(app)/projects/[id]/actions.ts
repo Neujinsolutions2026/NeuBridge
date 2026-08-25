@@ -234,36 +234,57 @@ export async function setTaskDelayReasonAction(projectId: string, taskId: string
 // with subtasks contributes that share proportionally to how done its
 // subtasks are (Done = full credit, In Progress = half credit, To Do = no
 // credit), instead of only counting once the whole task flips to Done.
+//
+// Project status mirrors that: reaching 100% marks the project Completed
+// automatically, and dropping back below 100% (a task got reopened, or a
+// new task was added) reverts it to In Progress - the same "derived, not
+// typed in by hand" treatment as progress itself. On Hold is left alone
+// either way, since that's an explicit staff decision progress shouldn't
+// silently override.
 async function recalculateProjectProgress(projectId: string) {
-  const tasks = await prisma.task.findMany({
-    where: { projectId },
-    select: { status: true, subtasks: { select: { status: true } } },
-  });
-  if (tasks.length === 0) {
-    await prisma.project.update({ where: { id: projectId }, data: { progress: 0 } });
-    return;
+  const [tasks, project] = await Promise.all([
+    prisma.task.findMany({
+      where: { projectId },
+      select: { status: true, subtasks: { select: { status: true } } },
+    }),
+    prisma.project.findUnique({ where: { id: projectId }, select: { status: true } }),
+  ]);
+  if (!project) return;
+
+  const totalFraction =
+    tasks.length === 0
+      ? 0
+      : tasks.reduce((sum, t) => {
+          if (t.subtasks.length > 0) {
+            const credit = t.subtasks.reduce(
+              (c, s) => c + (s.status === "DONE" ? 1 : s.status === "IN_PROGRESS" ? 0.5 : 0),
+              0
+            );
+            return sum + credit / t.subtasks.length;
+          }
+          return sum + (t.status === "DONE" ? 1 : 0);
+        }, 0);
+
+  const progress = tasks.length === 0 ? 0 : Math.round((totalFraction / tasks.length) * 100);
+
+  let status: typeof project.status | undefined;
+  if (project.status !== "ON_HOLD") {
+    if (progress === 100 && project.status !== "COMPLETED") status = "COMPLETED";
+    else if (progress < 100 && project.status === "COMPLETED") status = "IN_PROGRESS";
   }
 
-  const totalFraction = tasks.reduce((sum, t) => {
-    if (t.subtasks.length > 0) {
-      const credit = t.subtasks.reduce(
-        (c, s) => c + (s.status === "DONE" ? 1 : s.status === "IN_PROGRESS" ? 0.5 : 0),
-        0
-      );
-      return sum + credit / t.subtasks.length;
-    }
-    return sum + (t.status === "DONE" ? 1 : 0);
-  }, 0);
-
-  const progress = Math.round((totalFraction / tasks.length) * 100);
-  await prisma.project.update({ where: { id: projectId }, data: { progress } });
+  await prisma.project.update({ where: { id: projectId }, data: { progress, ...(status ? { status } : {}) } });
 }
 
 export async function postUpdateAction(projectId: string, formData: FormData) {
   const { session } = await requireProjectAccess(projectId);
   if (!isStaff(session)) throw new Error("Only staff can post updates");
 
-  const status = formData.get("status") as string | null;
+  // Completed is derived automatically from 100% task progress (see
+  // recalculateProjectProgress) - never accepted directly here, in case a
+  // request bypasses the form's disabled dropdown for it.
+  const statusRaw = formData.get("status") as string | null;
+  const status = statusRaw === "COMPLETED" ? null : statusRaw;
   const holdReason = (formData.get("holdReason") as string | null)?.trim() || null;
 
   // On Hold requires a justification - reject the whole update rather than

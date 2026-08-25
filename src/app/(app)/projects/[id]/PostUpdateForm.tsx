@@ -55,15 +55,20 @@ export function PostUpdateForm({
           Status
           <select
             name="status"
-            value={selectedStatus}
+            value={selectedStatus === "COMPLETED" ? "IN_PROGRESS" : selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="ml-2 rounded-md border border-gray-300 px-2 py-1 text-sm"
+            disabled={status === "COMPLETED"}
+            className="ml-2 rounded-md border border-gray-300 px-2 py-1 text-sm disabled:bg-gray-50 disabled:text-gray-400"
           >
             <option value="IN_PROGRESS">In Progress</option>
-            <option value="COMPLETED">Completed</option>
             <option value="ON_HOLD">On Hold</option>
             <option value="OVERDUE">Overdue</option>
           </select>
+          {status === "COMPLETED" && (
+            <span className="ml-2 text-gray-400">
+              (Completed automatically — will reopen if a task is un-done)
+            </span>
+          )}
         </label>
         <button className="ml-auto rounded-md bg-gray-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-gray-800">
           Publish Update
