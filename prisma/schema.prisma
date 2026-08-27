@@ -92,6 +92,11 @@ model Project {
   // required document - set once by staff, not per document.
   documentUploadLink String?
 
+  // The reverse direction of documentUploadLink: a single shared link
+  // where staff have placed documents/deliverables for the client to
+  // receive from them - also set once, not tracked per document.
+  documentDeliveryLink String?
+
   // Why the project is currently on hold - required whenever status is set
   // to ON_HOLD, cleared once it moves to any other status. Visible to the client.
   holdReason String?

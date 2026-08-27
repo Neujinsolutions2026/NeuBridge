@@ -13,6 +13,7 @@ import { ORG_NAME } from "@/lib/constants";
 import {
   postMessageAction,
   setDocumentUploadLinkAction,
+  setDocumentDeliveryLinkAction,
   addRequiredDocumentAction,
   toggleDocumentStatusAction,
   toggleTaskAction,
@@ -322,6 +323,54 @@ export default async function ProjectDetailPage({
               </p>
             </div>
 
+            <div className="rounded-lg border border-gray-200 bg-white p-5">
+              <h2 className="text-sm font-semibold text-gray-900">Document Delivery Link</h2>
+              {staff && project.documentDeliveryLink ? (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <a
+                    href={project.documentDeliveryLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 truncate rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-blue-600 hover:underline"
+                  >
+                    {project.documentDeliveryLink}
+                  </a>
+                  <form action={setDocumentDeliveryLinkAction.bind(null, project.id)}>
+                    <button className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
+                      Remove
+                    </button>
+                  </form>
+                </div>
+              ) : staff ? (
+                <form action={setDocumentDeliveryLinkAction.bind(null, project.id)} className="mt-3 flex flex-wrap gap-2">
+                  <input
+                    name="documentDeliveryLink"
+                    type="url"
+                    placeholder="https://workdrive.zoho.com/folder/..."
+                    required
+                    className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  />
+                  <button className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
+                    Save
+                  </button>
+                </form>
+              ) : project.documentDeliveryLink ? (
+                <a
+                  href={project.documentDeliveryLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-flex rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+                >
+                  View Documents ↗
+                </a>
+              ) : (
+                <p className="mt-2 text-sm text-gray-400">No documents have been shared with you yet.</p>
+              )}
+              <p className="mt-2 text-[11px] text-gray-400">
+                Documents we send to you (reports, deliverables) will be shared here.
+              </p>
+            </div>
+
             {staff && (
               <form action={addRequiredDocumentAction.bind(null, project.id)} className="flex gap-2 rounded-lg border border-gray-200 bg-white p-4">
                 <input name="name" placeholder="Required document name" required className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm" />
@@ -350,7 +399,7 @@ export default async function ProjectDetailPage({
                               d.status === "RECEIVED" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"
                             }`}
                           >
-                            {d.status === "RECEIVED" ? "Received" : "Pending"}
+                            {d.status === "RECEIVED" ? (staff ? "Received" : "Sent") : "Pending"}
                           </button>
                         </form>
                       </td>

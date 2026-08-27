@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { canAccessProject } from "@/lib/authz";
+import { canAccessProject, isStaff } from "@/lib/authz";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { toggleDocumentStatusAction } from "@/app/(app)/projects/[id]/actions";
 
@@ -29,6 +29,8 @@ export default async function ProjectDocumentsPage({
   if (!project) notFound();
   if (!canAccessProject(session, project)) notFound();
 
+  const staff = isStaff(session);
+
   return (
     <div className="mx-auto max-w-6xl">
       <Breadcrumb items={[{ label: "Documents", href: "/documents" }, { label: project.name }]} />
@@ -47,6 +49,22 @@ export default async function ProjectDocumentsPage({
           </a>
         ) : (
           <p className="mt-2 text-sm text-gray-400">No upload link has been shared yet.</p>
+        )}
+      </div>
+
+      <div className="mt-4 rounded-lg border border-gray-200 bg-white p-5">
+        <h2 className="text-sm font-semibold text-gray-900">Document Delivery Link</h2>
+        {project.documentDeliveryLink ? (
+          <a
+            href={project.documentDeliveryLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+          >
+            View Documents ↗
+          </a>
+        ) : (
+          <p className="mt-2 text-sm text-gray-400">No documents have been shared with you yet.</p>
         )}
       </div>
 
@@ -72,7 +90,7 @@ export default async function ProjectDocumentsPage({
                         d.status === "RECEIVED" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"
                       }`}
                     >
-                      {d.status === "RECEIVED" ? "Received" : "Pending"}
+                      {d.status === "RECEIVED" ? (staff ? "Received" : "Sent") : "Pending"}
                     </button>
                   </form>
                 </td>

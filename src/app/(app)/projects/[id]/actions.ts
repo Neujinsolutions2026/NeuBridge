@@ -63,6 +63,16 @@ export async function setDocumentUploadLinkAction(projectId: string, formData: F
   revalidatePath(`/projects/${projectId}`);
 }
 
+export async function setDocumentDeliveryLinkAction(projectId: string, formData: FormData) {
+  const { session } = await requireProjectAccess(projectId);
+  if (!isStaff(session)) throw new Error("Only staff can set the delivery link");
+
+  const link = (formData.get("documentDeliveryLink") as string | null)?.trim() || null;
+  await prisma.project.update({ where: { id: projectId }, data: { documentDeliveryLink: link } });
+
+  revalidatePath(`/projects/${projectId}`);
+}
+
 export async function addRequiredDocumentAction(projectId: string, formData: FormData) {
   const { session } = await requireProjectAccess(projectId);
   if (!isStaff(session)) throw new Error("Only staff can add required documents");
