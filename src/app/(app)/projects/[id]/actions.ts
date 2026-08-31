@@ -60,6 +60,32 @@ export async function postMessageAction(projectId: string, formData: FormData) {
   revalidatePath(`/projects/${projectId}`);
 }
 
+export async function updateProjectDetailsAction(projectId: string, formData: FormData) {
+  const { session } = await requireProjectAccess(projectId);
+  if (!isAdmin(session)) throw new Error("Only admins can edit project details");
+
+  const code = (formData.get("code") as string | null)?.trim();
+  const name = (formData.get("name") as string | null)?.trim();
+  if (!code || !name) return;
+
+  const description = (formData.get("description") as string | null)?.trim() || null;
+  const startDateRaw = formData.get("startDate") as string | null;
+  const dueDateRaw = formData.get("dueDate") as string | null;
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: {
+      code,
+      name,
+      description,
+      startDate: startDateRaw ? new Date(startDateRaw) : null,
+      dueDate: dueDateRaw ? new Date(dueDateRaw) : null,
+    },
+  });
+
+  revalidatePath(`/projects/${projectId}`);
+}
+
 export async function setDocumentUploadLinkAction(projectId: string, formData: FormData) {
   const { session } = await requireProjectAccess(projectId);
   if (!isStaff(session)) throw new Error("Only staff can set the upload link");

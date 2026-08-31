@@ -11,6 +11,7 @@ import { TaskSubtasks } from "./TaskSubtasks";
 import { AddTaskForm } from "./AddTaskForm";
 import { ORG_NAME } from "@/lib/constants";
 import {
+  updateProjectDetailsAction,
   postMessageAction,
   setDocumentUploadLinkAction,
   setDocumentDeliveryLinkAction,
@@ -44,6 +45,11 @@ function formatDate(date: Date | null | undefined) {
 
 function formatDateTime(date: Date) {
   return date.toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+// YYYY-MM-DD, what <input type="date"> needs for its defaultValue.
+function toDateInputValue(date: Date | null | undefined) {
+  return date ? date.toISOString().slice(0, 10) : "";
 }
 
 export default async function ProjectDetailPage({
@@ -159,6 +165,61 @@ export default async function ProjectDetailPage({
                 <p className="text-sm font-semibold text-amber-800">This project is currently on hold</p>
                 <p className="mt-1 whitespace-pre-wrap text-sm text-amber-900">{project.holdReason}</p>
               </div>
+            )}
+            {admin && (
+              <details className="rounded-lg border border-gray-200 bg-white p-5">
+                <summary className="cursor-pointer text-sm font-semibold text-gray-900">Edit Project Details</summary>
+                <form action={updateProjectDetailsAction.bind(null, project.id)} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="block text-xs font-medium text-gray-600">
+                    Project Code
+                    <input
+                      name="code"
+                      defaultValue={project.code}
+                      required
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                    />
+                  </label>
+                  <label className="block text-xs font-medium text-gray-600">
+                    Project Name
+                    <input
+                      name="name"
+                      defaultValue={project.name}
+                      required
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                    />
+                  </label>
+                  <label className="block text-xs font-medium text-gray-600 sm:col-span-2">
+                    Description
+                    <textarea
+                      name="description"
+                      defaultValue={project.description ?? ""}
+                      rows={2}
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                    />
+                  </label>
+                  <label className="block text-xs font-medium text-gray-600">
+                    Start Date
+                    <input
+                      type="date"
+                      name="startDate"
+                      defaultValue={toDateInputValue(project.startDate)}
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                    />
+                  </label>
+                  <label className="block text-xs font-medium text-gray-600">
+                    Due Date
+                    <input
+                      type="date"
+                      name="dueDate"
+                      defaultValue={toDateInputValue(project.dueDate)}
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                    />
+                  </label>
+                  <button className="sm:col-span-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
+                    Save Changes
+                  </button>
+                </form>
+              </details>
             )}
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="rounded-lg border border-gray-200 bg-white p-5 lg:col-span-2">
