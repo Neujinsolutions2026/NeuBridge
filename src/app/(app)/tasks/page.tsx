@@ -18,7 +18,10 @@ export default async function TasksPage() {
       ? {}
       : session.user.role === "INTERNAL"
       ? { members: { some: { userId: session.user.id } } }
-      : { companyId: session.user.companyId ?? "" };
+      : {
+          companyId: session.user.companyId ?? "",
+          OR: [{ clientPocId: null }, { clientPocId: session.user.id }],
+        };
 
   const tasks = await prisma.task.findMany({
     where: { project: projectWhere },

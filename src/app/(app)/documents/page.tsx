@@ -13,7 +13,10 @@ export default async function DocumentsPage() {
       ? {}
       : session.user.role === "INTERNAL"
       ? { members: { some: { userId: session.user.id } } }
-      : { companyId: session.user.companyId ?? "" };
+      : {
+          companyId: session.user.companyId ?? "",
+          OR: [{ clientPocId: null }, { clientPocId: session.user.id }],
+        };
 
   const projects = await prisma.project.findMany({
     where: projectWhere,
