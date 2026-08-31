@@ -111,14 +111,18 @@ async function main() {
   ];
 
   for (const p of projectsData) {
-    const project = await prisma.project.upsert({
-      where: { code: p.code },
-      update: {},
-      create: {
-        ...p,
-        companyId: company.id,
-      },
-    });
+    // code is no longer unique, so upsert-by-code isn't available - find the
+    // seeded project by code instead (fine here since seed data uses
+    // distinct codes), and create it if this is the first run.
+    const existingProject = await prisma.project.findFirst({ where: { code: p.code } });
+    const project =
+      existingProject ??
+      (await prisma.project.create({
+        data: {
+          ...p,
+          companyId: company.id,
+        },
+      }));
 
     await prisma.projectMember.upsert({
       where: { projectId_userId: { projectId: project.id, userId: pm.id } },
