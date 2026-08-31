@@ -20,5 +20,9 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|uploads).*)"],
+  // Excludes Next.js internals, the uploads route, and any static asset file
+  // (images, icons, etc. in /public) - those need to load even for a
+  // logged-out visitor (e.g. the logo on the login page itself), not get
+  // redirected to /login like a real page would.
+  matcher: ["/((?!_next/static|_next/image|uploads|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp)$).*)"],
 };

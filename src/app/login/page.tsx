@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useActionState } from "react";
 import { loginAction } from "./actions";
 
@@ -10,9 +11,8 @@ export default function LoginPage() {
     <div className="flex flex-1 items-center justify-center bg-gray-100 px-4 py-12">
       <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
         <div className="mb-8 text-center">
-          <h1 className="text-xl font-bold tracking-tight text-gray-900">
-            CLIENT PROJECT PORTAL
-          </h1>
+          <Image src="/Neubridge.png" alt="Neubridge" width={220} height={81} className="mx-auto" priority />
+          <p className="mt-2 text-sm font-medium text-gray-500 tracking-wide">CLIENT PORTAL</p>
           <p className="mt-1 text-sm text-gray-500">
             Secure. Transparent. Collaborative.
           </p>

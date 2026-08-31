@@ -1,12 +1,13 @@
 import Link from "next/link";
+import Image from "next/image";
 import { DashboardIcon, LogoutIcon, ShieldIcon } from "@/components/icons";
 import { logoutAction } from "@/app/(app)/actions";
 
 export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r border-gray-200 bg-white">
-      <div className="flex items-center gap-2 border-b border-gray-200 px-5 py-4">
-        <span className="font-bold text-gray-900">Client Project Portal</span>
+      <div className="flex h-16 items-center justify-center border-b border-gray-200 px-4">
+        <Image src="/Neubridge.png" alt="Neubridge" width={140} height={51} priority />
       </div>
       <nav className="flex-1 space-y-0.5 px-3 py-4">
         <Link

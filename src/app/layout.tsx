@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Client Project Portal",
+  title: "Neubridge Client Portal",
   description: "Track your project status, documents, and communication in one place.",
 };
 
