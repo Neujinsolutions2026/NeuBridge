@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { canAccessProject, isAdmin, isStaff } from "@/lib/authz";
+import { canAccessProject, isAdmin, isClient, isStaff } from "@/lib/authz";
 import { saveUploadedFile } from "@/lib/storage";
 
 async function requireProjectAccess(projectId: string) {
@@ -27,6 +27,13 @@ export async function postMessageAction(projectId: string, formData: FormData) {
   // behalf - everyone else on the team can still read the full thread.
   if (isStaff(session) && project.pocId && project.pocId !== session.user.id) {
     throw new Error("Only the Point of Contact can send messages on this project");
+  }
+  // Mirror of the above for the client's side: once a company has more than
+  // one client user (e.g. a different contact per project), only that
+  // project's client POC may message staff - others from the company can
+  // still read the thread.
+  if (isClient(session) && project.clientPocId && project.clientPocId !== session.user.id) {
+    throw new Error("Only your organization's Point of Contact can send messages on this project");
   }
 
   const body = (formData.get("body") as string | null)?.trim();
@@ -400,6 +407,26 @@ export async function setPocAction(projectId: string, formData: FormData) {
   }
 
   await prisma.project.update({ where: { id: projectId }, data: { pocId: userId } });
+  revalidatePath(`/projects/${projectId}`);
+}
+
+export async function setClientPocAction(projectId: string, formData: FormData) {
+  const { session, project } = await requireProjectAccess(projectId);
+  if (!isAdmin(session)) throw new Error("Only admins can set the Client Point of Contact");
+
+  const userId = (formData.get("userId") as string | null) || null;
+
+  // The client POC must be a CLIENT user from this project's own company -
+  // a company can have several client logins (e.g. one per project), so
+  // this can differ project to project even for the same company.
+  if (userId) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.role !== "CLIENT" || user.companyId !== project.companyId) {
+      throw new Error("The Client Point of Contact must be a client user from this project's company");
+    }
+  }
+
+  await prisma.project.update({ where: { id: projectId }, data: { clientPocId: userId } });
   revalidatePath(`/projects/${projectId}`);
 }
 

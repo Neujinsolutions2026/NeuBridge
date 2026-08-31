@@ -22,6 +22,7 @@ import {
   addProjectMemberAction,
   removeProjectMemberAction,
   setPocAction,
+  setClientPocAction,
 } from "./actions";
 
 const TABS = [
@@ -62,8 +63,9 @@ export default async function ProjectDetailPage({
   const project = await prisma.project.findUnique({
     where: { id },
     include: {
-      company: true,
+      company: { include: { users: true } },
       poc: true,
+      clientPoc: true,
       members: { include: { user: true }, orderBy: { createdAt: "asc" } },
       tasks: {
         include: { assignee: true, subtasks: { orderBy: { createdAt: "asc" } } },
@@ -85,7 +87,9 @@ export default async function ProjectDetailPage({
   const staff = isStaff(session);
   const admin = isAdmin(session);
   const latestUpdate = project.updates[0];
-  const canSendMessage = !staff || !project.pocId || project.pocId === session.user.id;
+  const canSendMessage = staff
+    ? !project.pocId || project.pocId === session.user.id
+    : !project.clientPocId || project.clientPocId === session.user.id;
 
   const availableStaff = admin
     ? await prisma.user.findMany({
@@ -264,10 +268,16 @@ export default async function ProjectDetailPage({
                   Send
                 </button>
               </form>
-            ) : (
+            ) : staff ? (
               <p className="border-t border-gray-200 p-4 text-sm text-gray-500">
                 Only the Point of Contact (<span className="font-medium text-gray-700">{project.poc?.name}</span>) can send
                 messages to the client on this project. You can still read the full conversation above.
+              </p>
+            ) : (
+              <p className="border-t border-gray-200 p-4 text-sm text-gray-500">
+                Only your organization&apos;s Point of Contact (
+                <span className="font-medium text-gray-700">{project.clientPoc?.name}</span>) can send messages on
+                this project. You can still read the full conversation above.
               </p>
             )}
           </div>
@@ -585,6 +595,46 @@ export default async function ProjectDetailPage({
                   </select>
                   <button className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
                     Set POC
+                  </button>
+                </form>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-gray-200 bg-white p-5">
+              <h2 className="text-sm font-semibold text-gray-900">Client Point of Contact</h2>
+              <p className="mt-1 text-xs text-gray-400">
+                The mirror of POC on the client&apos;s side — useful when a company has more than one client login
+                (e.g. a different contact per project). Only they can message staff for this project; everyone else
+                from the company can still read the full history.
+              </p>
+              <p className="mt-3 text-sm text-gray-700">
+                {project.clientPoc ? (
+                  <span className="font-medium text-gray-900">
+                    {project.clientPoc.name} <span className="text-xs text-gray-400">({project.clientPoc.email})</span>
+                  </span>
+                ) : (
+                  <span className="text-gray-400">No client POC assigned yet — any client user from this company can message staff.</span>
+                )}
+              </p>
+              {admin && (
+                <form action={setClientPocAction.bind(null, project.id)} className="mt-3 flex flex-wrap items-center gap-2">
+                  <select
+                    key={project.clientPocId ?? "none"}
+                    name="userId"
+                    defaultValue={project.clientPocId ?? ""}
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  >
+                    <option value="">No client POC (any client user can message)</option>
+                    {project.company.users
+                      .filter((u) => u.role === "CLIENT")
+                      .map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name} ({u.email})
+                        </option>
+                      ))}
+                  </select>
+                  <button className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
+                    Set Client POC
                   </button>
                 </form>
               )}

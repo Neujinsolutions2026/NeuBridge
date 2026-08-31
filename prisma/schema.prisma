@@ -58,6 +58,7 @@ model User {
   deactivatedAt DateTime?
 
   pocForProjects   Project[]         @relation("ProjectPOC")
+  clientPocForProjects Project[]     @relation("ProjectClientPOC")
   taskAssignments  Task[]            @relation("TaskAssignee")
   documentsAdded   Document[]
   messages         Message[]
@@ -89,6 +90,14 @@ model Project {
   // whoever takes over as POC later has full context. Reassignable by Admin.
   pocId String?
   poc   User?   @relation("ProjectPOC", fields: [pocId], references: [id])
+
+  // The mirror of poc on the client's side: when a company has multiple
+  // client-role users (e.g. a different contact per project), this is the
+  // one who may message staff on the client's behalf for this specific
+  // project. Everyone else from the company can still read the thread.
+  // Reassignable by Admin, must be a CLIENT user from this project's company.
+  clientPocId String?
+  clientPoc   User?   @relation("ProjectClientPOC", fields: [clientPocId], references: [id])
 
   // Single shared link (e.g. Zoho folder) where the client uploads every
   // required document - set once by staff, not per document.

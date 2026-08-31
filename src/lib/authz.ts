@@ -15,6 +15,10 @@ export function isStaff(session: Session | null) {
   return isAdmin(session) || isInternal(session);
 }
 
+export function isClient(session: Session | null) {
+  return session?.user.role === "CLIENT";
+}
+
 type ProjectAccessInput = {
   companyId: string;
   members?: { userId: string }[];
