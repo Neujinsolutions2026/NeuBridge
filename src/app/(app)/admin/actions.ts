@@ -36,6 +36,34 @@ export async function createClientAction(_prevState: string | undefined, formDat
   redirect("/admin");
 }
 
+export async function createClientContactAction(companyId: string, _prevState: string | undefined, formData: FormData) {
+  await requireAdmin();
+
+  const contactName = (formData.get("contactName") as string).trim();
+  const email = (formData.get("email") as string).trim().toLowerCase();
+  const password = (formData.get("password") as string) || "password123";
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing && !existing.deactivatedAt) {
+    return "That email is already in use by an active account.";
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  if (existing) {
+    // Previously removed - reactivate under this company instead of failing
+    // on the duplicate email, same as team member re-hiring.
+    await prisma.user.update({
+      where: { id: existing.id },
+      data: { name: contactName, passwordHash, role: "CLIENT", companyId, deactivatedAt: null },
+    });
+  } else {
+    await prisma.user.create({ data: { name: contactName, email, passwordHash, role: "CLIENT", companyId } });
+  }
+
+  redirect("/admin");
+}
+
 export async function createTeamMemberAction(_prevState: string | undefined, formData: FormData) {
   await requireAdmin();
 

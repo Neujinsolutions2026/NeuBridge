@@ -48,6 +48,7 @@ export default async function AdminPage() {
                 <th className="px-5 py-3 font-medium">Company</th>
                 <th className="px-5 py-3 font-medium">Contact(s)</th>
                 <th className="px-5 py-3 font-medium">Projects</th>
+                <th className="px-5 py-3 font-medium"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -58,11 +59,16 @@ export default async function AdminPage() {
                     {c.users.map((u) => `${u.name} <${u.email}>`).join(", ") || "—"}
                   </td>
                   <td className="px-5 py-3 text-gray-500">{c._count.projects}</td>
+                  <td className="px-5 py-3 text-right">
+                    <Link href={`/admin/companies/${c.id}/contacts/new`} className="text-xs font-medium text-blue-600 hover:underline">
+                      + Add Contact
+                    </Link>
+                  </td>
                 </tr>
               ))}
               {companies.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="px-5 py-8 text-center text-sm text-gray-400">
+                  <td colSpan={4} className="px-5 py-8 text-center text-sm text-gray-400">
                     No clients yet.
                   </td>
                 </tr>
