@@ -76,7 +76,10 @@ export default async function ProjectDetailPage({
       members: { include: { user: true }, orderBy: { createdAt: "asc" } },
       tasks: {
         include: { assignee: true, subtasks: { orderBy: { createdAt: "asc" } } },
-        orderBy: { createdAt: "asc" },
+        // Earliest-starting task first, so the task list and Gantt chart
+        // both read top-to-bottom in timeline order rather than creation
+        // order. Unscheduled tasks (no start date) sort to the end.
+        orderBy: { startDate: { sort: "asc", nulls: "last" } },
       },
       documents: {
         include: { addedBy: true },
