@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/authz";
 import { removeTeamMemberAction } from "./actions";
+import { DeleteProjectButton } from "./DeleteProjectButton";
 
 export default async function AdminPage() {
   const session = await auth();
@@ -136,6 +137,7 @@ export default async function AdminPage() {
                 <th className="px-5 py-3 font-medium">Client</th>
                 <th className="px-5 py-3 font-medium">Status</th>
                 <th className="px-5 py-3 font-medium"></th>
+                <th className="px-5 py-3 font-medium"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -150,11 +152,14 @@ export default async function AdminPage() {
                       Open →
                     </Link>
                   </td>
+                  <td className="px-5 py-3 text-right">
+                    <DeleteProjectButton projectId={p.id} projectLabel={`${p.code} — ${p.name}`} />
+                  </td>
                 </tr>
               ))}
               {projects.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-5 py-8 text-center text-sm text-gray-400">
+                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-gray-400">
                     No projects yet.
                   </td>
                 </tr>

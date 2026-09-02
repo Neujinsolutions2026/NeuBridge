@@ -135,3 +135,15 @@ export async function createProjectAction(formData: FormData) {
 
   redirect("/admin");
 }
+
+export async function deleteProjectAction(projectId: string) {
+  await requireAdmin();
+
+  // Cascades to the project's tasks, subtasks, documents, messages (and
+  // their attachments), updates, call logs, and project members. Meant for
+  // cleaning up accidental duplicates (e.g. a double-clicked "Create
+  // Project"), not routine deletion - there's no undo.
+  await prisma.project.delete({ where: { id: projectId } });
+
+  revalidatePath("/admin");
+}
