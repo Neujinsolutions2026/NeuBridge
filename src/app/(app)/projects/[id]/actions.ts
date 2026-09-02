@@ -187,6 +187,31 @@ export async function toggleTaskAction(projectId: string, taskId: string) {
   revalidatePath(`/projects/${projectId}`);
 }
 
+export async function updateTaskDatesAction(projectId: string, taskId: string, formData: FormData) {
+  const { session } = await requireProjectAccess(projectId);
+  if (!isStaff(session)) throw new Error("Only staff can update task dates");
+
+  const task = await prisma.task.findUnique({ where: { id: taskId } });
+  if (!task || task.projectId !== projectId) return;
+
+  const unscheduled = formData.get("unscheduled") === "on";
+  const startDateRaw = formData.get("startDate") as string | null;
+  const dueDateRaw = formData.get("dueDate") as string | null;
+  // Same rule as creating a task: scheduled needs both dates, unscheduled
+  // clears them both - so a task can be rescheduled either direction.
+  if (!unscheduled && (!startDateRaw || !dueDateRaw)) return;
+
+  await prisma.task.update({
+    where: { id: taskId },
+    data: {
+      startDate: unscheduled ? null : new Date(startDateRaw as string),
+      dueDate: unscheduled ? null : new Date(dueDateRaw as string),
+    },
+  });
+
+  revalidatePath(`/projects/${projectId}`);
+}
+
 export async function addSubtaskAction(projectId: string, taskId: string, formData: FormData) {
   const { session } = await requireProjectAccess(projectId);
   if (!isStaff(session)) throw new Error("Only staff can add subtasks");

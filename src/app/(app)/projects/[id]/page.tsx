@@ -8,6 +8,7 @@ import { PostUpdateForm } from "./PostUpdateForm";
 import { CommunicationThread } from "./CommunicationThread";
 import { GanttChart } from "./GanttChart";
 import { TaskSubtasks } from "./TaskSubtasks";
+import { EditTaskDatesForm } from "./EditTaskDatesForm";
 import { AddTaskForm } from "./AddTaskForm";
 import { ORG_NAME } from "@/lib/constants";
 import {
@@ -544,6 +545,7 @@ export default async function ProjectDetailPage({
                         </form>
                       </div>
                     </div>
+                    <EditTaskDatesForm projectId={project.id} taskId={t.id} startDate={t.startDate} dueDate={t.dueDate} />
                     <TaskSubtasks projectId={project.id} taskId={t.id} subtasks={t.subtasks} />
                   </div>
                 ))}
