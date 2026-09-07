@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccessProject, isAdmin, isClient, isStaff } from "@/lib/authz";
 import { saveUploadedFile } from "@/lib/storage";
+import { sendNotificationEmail } from "@/lib/email";
 
 async function requireProjectAccess(projectId: string) {
   const session = await auth();
@@ -494,7 +495,7 @@ async function notifyCompanyStaffAndClient(projectId: string, actingUserId: stri
         { projectMemberships: { some: { projectId } } },
       ],
     },
-    select: { id: true },
+    select: { id: true, email: true },
   });
 
   if (recipients.length === 0) return;
@@ -502,4 +503,10 @@ async function notifyCompanyStaffAndClient(projectId: string, actingUserId: stri
   await prisma.notification.createMany({
     data: recipients.map((r) => ({ userId: r.id, projectId, message })),
   });
+
+  await Promise.all(
+    recipients.map((r) =>
+      sendNotificationEmail({ to: r.email, message, projectId, projectCode: project.code })
+    )
+  );
 }
