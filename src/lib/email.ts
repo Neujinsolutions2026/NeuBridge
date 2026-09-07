@@ -25,7 +25,7 @@ export async function sendNotificationEmail({
   const projectUrl = `${APP_URL}/projects/${projectId}`;
 
   try {
-    await resend.emails.send({
+    const { error } = await resend.emails.send({
       from: FROM,
       to,
       subject: `${projectCode}: ${message}`,
@@ -35,9 +35,13 @@ export async function sendNotificationEmail({
         <p style="color: #888; font-size: 12px;">You're receiving this because of activity on a Neubridge project you have access to.</p>
       `,
     });
+    // Resend doesn't throw for API-level failures (invalid/unverified from
+    // address, quota exceeded, etc.) - it returns { error } instead, so
+    // that has to be checked explicitly or failures go completely silent.
+    if (error) console.error("Resend rejected notification email:", error);
   } catch (err) {
-    // A flaky email provider shouldn't fail the action it's attached to -
-    // the in-app notification is already created regardless.
+    // A flaky email provider (network failure, etc.) shouldn't fail the
+    // action it's attached to - the in-app notification already exists.
     console.error("Failed to send notification email:", err);
   }
 }
