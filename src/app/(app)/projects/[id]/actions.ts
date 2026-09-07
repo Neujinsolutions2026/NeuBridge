@@ -490,7 +490,11 @@ async function notifyCompanyStaffAndClient(projectId: string, actingUserId: stri
     where: {
       id: { not: actingUserId },
       OR: [
-        { companyId: project.companyId },
+        // Client company members - but once this project has a Client POC
+        // assigned, only they should hear about it, matching exactly who
+        // can even see the project (see canAccessProject) rather than
+        // notifying every client user at the company regardless.
+        project.clientPocId ? { id: project.clientPocId } : { companyId: project.companyId },
         { role: "ADMIN" },
         { projectMemberships: { some: { projectId } } },
       ],
